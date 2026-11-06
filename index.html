@@ -46,13 +46,14 @@
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-xs text-slate-500 font-medium">Total Fiado (A Receber)</p>
-                        <h2 id="lbl-fiado" class="text-xl font-bold text-rose-600 mt-1">R$ 0,00</h2>
-                    </div>
-                    <button onclick="mudarAba('clientes')" class="text-xs bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg font-semibold hover:bg-rose-100 transition">Ver Clientes</button>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-xs text-slate-500 font-medium">Total Fiado (A Receber)</p>
+                    <h2 id="lbl-fiado" class="text-xl font-bold text-rose-600 mt-1">R$ 0,00</h2>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-xs text-slate-500 font-medium">Fiado Mês Anterior</p>
+                    <h2 id="lbl-fiado-mes-anterior" class="text-xl font-bold text-amber-600 mt-1">R$ 0,00</h2>
                 </div>
             </div>
 
@@ -90,7 +91,7 @@
             </div>
             
             <div id="grid-produtos" class="grid grid-cols-1 gap-3">
-                <!-- Lista de produtos injetada via JS -->
+                <!-- Lista de produtos com data de cadastro e estatísticas minimalistas -->
             </div>
         </section>
 
@@ -101,6 +102,26 @@
                 <button onclick="abrirModalVenda()" class="bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-pink-700 transition flex items-center gap-2">
                     <i class="fa-solid fa-cart-shopping"></i> Registrar Venda
                 </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-xs text-slate-500 font-medium">Qtd Total em Estoque</p>
+                    <h3 id="lbl-qtd-total-produtos" class="text-lg font-bold text-slate-900 mt-1">0 un</h3>
+                </div>
+                <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-xs text-slate-500 font-medium">Falta P/ Lucrar</p>
+                    <h3 id="lbl-falta-para-lucro" class="text-lg font-bold text-indigo-600 mt-1">R$ 0,00</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Produtos Acabando (≤ 5 un)
+                </p>
+                <div id="lbl-produtos-acabando" class="text-xs font-semibold text-rose-600 mt-1.5 space-y-1">
+                    <!-- Preenchido via JS -->
+                </div>
             </div>
 
             <div id="lista-historico-vendas" class="space-y-3">
@@ -198,7 +219,7 @@
                     <input type="number" step="0.01" id="prod-custo" oninput="calcularSugestaoPreco()" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500" placeholder="0.00">
                 </div>
                 <div>
-                    <label class="text-xs font-semibold text-slate-600">Qtd em Estoque</label>
+                    <label class="text-xs font-semibold text-slate-600">Qtd para Adicionar</label>
                     <input type="number" id="prod-qtd" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500" placeholder="0">
                 </div>
             </div>
@@ -384,7 +405,7 @@
                     document.getElementById('prod-id').value = p.id;
                     document.getElementById('prod-nome').value = p.nome;
                     document.getElementById('prod-custo').value = p.custo;
-                    document.getElementById('prod-qtd').value = p.qtd;
+                    document.getElementById('prod-qtd').value = ''; // Deixa vazio para adicionar mais
                     document.getElementById('prod-preco').value = p.preco;
                 }
             }
@@ -400,34 +421,76 @@
 
         function salvarProduto() {
             let id = document.getElementById('prod-id').value;
-            let nome = document.getElementById('prod-nome').value;
+            let nomeInput = document.getElementById('prod-nome').value.trim();
             let custo = parseFloat(document.getElementById('prod-custo').value) || 0;
-            let qtd = parseInt(document.getElementById('prod-qtd').value) || 0;
+            let qtdAdicionar = parseInt(document.getElementById('prod-qtd').value) || 0;
             let preco = parseFloat(document.getElementById('prod-preco').value) || 0;
 
-            if(!nome || custo <= 0 || preco <= 0) {
-                alert('Preencha todos os campos corretamente!');
+            if(!nomeInput || custo <= 0 || preco <= 0 || qtdAdicionar <= 0) {
+                alert('Preencha todos os campos corretamente (quantidade deve ser maior que zero)!');
                 return;
             }
 
+            let agora = new Date();
+            let dataHoraFormatada = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+
             if(id === '') {
-                produtos.push({ id: Date.now(), nome, custo, qtd, preco, vendidosTotal: 0 });
+                // Verificar se já existe um produto com o mesmo nome (ignorando maiúsculas/minúsculas)
+                let produtoExistente = produtos.find(x => x.nome.toLowerCase() === nomeInput.toLowerCase());
+
+                if(produtoExistente) {
+                    // Se já existe, apenas soma ao estoque existente sem duplicar o balão
+                    produtoExistente.qtd += qtdAdicionar;
+                    produtoExistente.custo = custo; // Atualiza para o custo mais recente se mudou
+                    produtoExistente.preco = preco;
+                    alert(`O produto "${produtoExistente.nome}" já existe. Foram adicionadas +${qtdAdicionar} unidades ao estoque atual!`);
+                } else {
+                    // Se não existe, cria um balão novo com data/hora de cadastro
+                    produtos.push({
+                        id: Date.now(),
+                        nome: nomeInput,
+                        custo,
+                        qtd: qtdAdicionar,
+                        preco,
+                        vendidosTotal: 0,
+                        dataCadastro: dataHoraFormatada
+                    });
+                }
             } else {
+                // Edição direta do produto existente
                 let p = produtos.find(x => x.id == id);
-                p.nome = nome; p.custo = custo; p.qtd = qtd; p.preco = preco;
+                if(p) {
+                    p.nome = nomeInput;
+                    p.custo = custo;
+                    p.qtd += qtdAdicionar; // Soma a nova quantidade informada
+                    p.preco = preco;
+                }
             }
 
             localStorage.setItem('doceria_produtos', JSON.stringify(produtos));
             fecharModalEstoque();
             renderizarProdutos();
+            renderizarVendas();
             atualizarSelects();
         }
 
         function deletarProduto(id) {
-            if(confirm('Deseja realmente excluir este produto?')) {
+            let p = produtos.find(x => x.id === id);
+            if(!p) return;
+
+            // PROTEÇÃO: Verificar se já teve vendas desse produto para evitar bagunçar o histórico
+            let temVendas = vendas.some(v => v.produtoNome.toLowerCase() === p.nome.toLowerCase());
+
+            if(temVendas) {
+                alert(`⚠️ Atenção: Não é possível excluir o produto "${p.nome}" pois ele possui vendas registradas no histórico. Isso protegerá o seu faturamento e relatórios de ficarem corrompidos!`);
+                return;
+            }
+
+            if(confirm(`Deseja realmente excluir o produto "${p.nome}"?`)) {
                 produtos = produtos.filter(x => x.id !== id);
                 localStorage.setItem('doceria_produtos', JSON.stringify(produtos));
                 renderizarProdutos();
+                renderizarVendas();
                 atualizarSelects();
             }
         }
@@ -438,18 +501,47 @@
                 html = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 border border-slate-100">Nenhum doce cadastrado.</div>`;
             } else {
                 produtos.forEach(p => {
-                    let lucroUnitario = p.preco - p.custo;
-                    let margem = p.custo > 0 ? ((lucroUnitario / p.custo) * 100).toFixed(0) : 0;
+                    let qtdVendida = p.vendidosTotal || 0;
+                    let qtdComprada = p.qtd + qtdVendida;
+                    let totalCompra = p.custo * qtdComprada;
+                    let totalVendido = p.preco * qtdVendida;
+                    let dataCadastroExibida = p.dataCadastro || 'Cadastro antigo';
+
                     html += `
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-                            <div>
-                                <h4 class="font-bold text-slate-900">${p.nome}</h4>
-                                <p class="text-xs text-slate-500 mt-0.5">Estoque: <span class="font-semibold text-slate-700">${p.qtd} un</span> | Custo: R$ ${p.custo.toFixed(2)}</p>
-                                <p class="text-xs text-emerald-600 font-semibold mt-1">Preço Venda: R$ ${p.preco.toFixed(2)} (Lucro: ${margem}%)</p>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-base">${p.nome}</h4>
+                                    <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-clock"></i> Cadastrado em: ${dataCadastroExibida}</p>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="abrirModalEstoque(${p.id})" class="bg-slate-100 text-slate-600 p-2 rounded-xl text-xs hover:bg-slate-200 transition" title="Repor / Editar"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deletarProduto(${p.id})" class="bg-rose-50 text-rose-600 p-2 rounded-xl text-xs hover:bg-rose-100 transition" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                                </div>
                             </div>
-                            <div class="flex gap-1">
-                                <button onclick="abrirModalEstoque(${p.id})" class="bg-slate-100 text-slate-600 p-2.5 rounded-xl hover:bg-slate-200 transition"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="deletarProduto(${p.id})" class="bg-rose-50 text-rose-600 p-2.5 rounded-xl hover:bg-rose-100 transition"><i class="fa-solid fa-trash"></i></button>
+                            
+                            <!-- GRID DE QUADRADINHOS MINIMALISTAS -->
+                            <div class="grid grid-cols-3 gap-1.5 text-center">
+                                <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold">Comprada</p>
+                                    <p class="text-xs font-bold text-slate-700 mt-0.5">${qtdComprada} un</p>
+                                </div>
+                                <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold">Vendida</p>
+                                    <p class="text-xs font-bold text-slate-700 mt-0.5">${qtdVendida} un</p>
+                                </div>
+                                <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold">Restante</p>
+                                    <p class="text-xs font-bold ${p.qtd <= 5 ? 'text-rose-600' : 'text-slate-700'} mt-0.5">${p.qtd} un</p>
+                                </div>
+                                <div class="bg-slate-50 p-2 rounded-xl border border-slate-100 col-span-1">
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold">Total Compra</p>
+                                    <p class="text-xs font-bold text-slate-700 mt-0.5">R$ ${totalCompra.toFixed(2)}</p>
+                                </div>
+                                <div class="bg-slate-50 p-2 rounded-xl border border-slate-100 col-span-2">
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold">Total Vendido</p>
+                                    <p class="text-xs font-bold text-emerald-600 mt-0.5">R$ ${totalVendido.toFixed(2)}</p>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -562,7 +654,6 @@
                 }
             }
 
-            // Data e Hora Automáticas formatadas (DD/MM/YYYY HH:mm)
             let agora = new Date();
             let dataHoraFormatada = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
 
@@ -574,7 +665,9 @@
                 lucro: lucroVenda,
                 tipo: tipoPagamento,
                 cliente: nomeClienteVenda,
-                dataHora: dataHoraFormatada
+                clienteId: tipoPagamento === 'fiado' ? clienteId : null,
+                dataHora: dataHoraFormatada,
+                dataObjeto: agora.toISOString()
             };
 
             vendas.unshift(novaVenda);
@@ -589,13 +682,40 @@
             renderizarVendas();
             renderizarClientes();
 
-            // Perguntar se deseja enviar comprovante WhatsApp
             if(confirm('Venda registrada com sucesso! Deseja enviar o comprovante via WhatsApp?')) {
                 enviarComprovanteWhatsApp(novaVenda);
             }
         }
 
         function renderizarVendas() {
+            let qtdTotalProdutos = 0;
+            let custoTotalEstoque = 0;
+            let produtosPoucoEstoque = [];
+
+            produtos.forEach(p => {
+                qtdTotalProdutos += p.qtd;
+                custoTotalEstoque += (p.custo * (p.qtd + (p.vendidosTotal || 0)));
+                if(p.qtd <= 5) {
+                    produtosPoucoEstoque.push(`${p.nome} (${p.qtd} un)`);
+                }
+            });
+
+            let faturamentoPagoTotal = 0;
+            vendas.forEach(v => {
+                if(v.tipo === 'pago') faturamentoPagoTotal += v.total;
+            });
+
+            let faltaParaLucrar = Math.max(0, custoTotalEstoque - faturamentoPagoTotal);
+
+            document.getElementById('lbl-qtd-total-produtos').innerText = `${qtdTotalProdutos} un`;
+            document.getElementById('lbl-falta-para-lucro').innerText = faltaParaLucrar > 0 ? `R$ ${faltaParaLucrar.toFixed(2)}` : 'Custos Cobertos! 🎉';
+
+            if(produtosPoucoEstoque.length > 0) {
+                document.getElementById('lbl-produtos-acabando').innerHTML = produtosPoucoEstoque.map(item => `<div>• ${item}</div>`).join('');
+            } else {
+                document.getElementById('lbl-produtos-acabando').innerHTML = `<span class="text-emerald-600 font-normal">Nenhum produto acabando! Todos acima de 5 un.</span>`;
+            }
+
             let html = '';
             let htmlUl = '';
             if(vendas.length === 0) {
@@ -630,7 +750,6 @@
             let cli = clientes.find(x => x.id === clienteId);
             if(cli && cli.divida > 0) {
                 if(confirm(`Confirmar o recebimento de R$ ${cli.divida.toFixed(2)} quitando a dívida de ${cli.nome}?`)) {
-                    // Registrar data e hora exatas da quitação no histórico
                     let agora = new Date();
                     let dataHoraFormatada = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
 
@@ -639,10 +758,11 @@
                         produtoNome: 'Baixa de Fiado (Quitação)',
                         qtd: 1,
                         total: cli.divida,
-                        lucro: cli.divida, // Considerado receita integral recebida
+                        lucro: cli.divida,
                         tipo: 'pago',
                         cliente: cli.nome,
-                        dataHora: dataHoraFormatada
+                        dataHora: dataHoraFormatada,
+                        dataObjeto: agora.toISOString()
                     });
 
                     cli.divida = 0;
@@ -681,11 +801,9 @@
 
         // --- PIX DINÂMICO ---
         function gerarPayloadPix(valor) {
-            // Payload simples do Pix EMV para cópia
             let chave = configPix.chave || '';
             let nome = configPix.nome || 'DoceGestao';
             let cidade = configPix.cidade || 'Sao Paulo';
-            let valStr = valor.toFixed(2);
             
             return `00020126580014br.gov.bcb.pix0136${chave}5204000053039865802BR5925${nome}6009${cidade}62070503***6304`;
         }
@@ -729,11 +847,29 @@
             let faturamentoTotal = 0;
             let lucroTotal = 0;
             let fiadoTotal = 0;
+            let fiadoMesAnterior = 0;
+
+            let agora = new Date();
+            let mesAtual = agora.getMonth();
+            let anoAtual = agora.getFullYear();
 
             vendas.forEach(v => {
-                if(v.tipo === 'pago') {
-                    faturamentoTotal += v.total;
-                    lucroTotal += v.lucro;
+                faturamentoTotal += v.total;
+                lucroTotal += v.lucro;
+
+                if (v.tipo === 'fiado' && v.clienteId) {
+                    let dataVenda = v.dataObjeto ? new Date(v.dataObjeto) : null;
+                    if (dataVenda) {
+                        let ehMesAnterior = (dataVenda.getFullYear() < anoAtual) || 
+                                           (dataVenda.getFullYear() === anoAtual && dataVenda.getMonth() < mesAtual);
+                        
+                        if (ehMesAnterior) {
+                            let cli = clientes.find(c => c.id == v.clienteId);
+                            if (cli && cli.divida > 0) {
+                                fiadoMesAnterior += Math.min(v.total, cli.divida);
+                            }
+                        }
+                    }
                 }
             });
 
@@ -744,6 +880,7 @@
             document.getElementById('lbl-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
             document.getElementById('lbl-lucro').innerText = `R$ ${lucroTotal.toFixed(2)}`;
             document.getElementById('lbl-fiado').innerText = `R$ ${fiadoTotal.toFixed(2)}`;
+            document.getElementById('lbl-fiado-mes-anterior').innerText = `R$ ${fiadoMesAnterior.toFixed(2)}`;
         }
 
         function atualizarSelects() {
@@ -758,26 +895,19 @@
         function renderizarGraficos() {
             let hojeStr = new Date().toLocaleDateString('pt-BR');
             let faturamentoHoje = 0;
-            let faturamentoMes = 0;
             let faturamentoGeral = 0;
 
-            let mesAtual = new Date().getMonth();
-            let anoAtual = new Date().getFullYear();
-
             vendas.forEach(v => {
-                if(v.tipo === 'pago') {
-                    faturamentoGeral += v.total;
-                    if(v.dataHora.startsWith(hojeStr)) {
-                        faturamentoHoje += v.total;
-                    }
+                faturamentoGeral += v.total;
+                if(v.dataHora.startsWith(hojeStr)) {
+                    faturamentoHoje += v.total;
                 }
             });
 
             document.getElementById('rel-hoje').innerText = `R$ ${faturamentoHoje.toFixed(2)}`;
-            document.getElementById('rel-mes').innerText = `R$ ${faturamentoGeral.toFixed(2)}`; // Simplificado acumulado
+            document.getElementById('rel-mes').innerText = `R$ ${faturamentoGeral.toFixed(2)}`;
             document.getElementById('rel-total').innerText = `R$ ${faturamentoGeral.toFixed(2)}`;
 
-            // Gráfico Faturamento
             let ctxFat = document.getElementById('graficoFaturamento').getContext('2d');
             if(graficoFaturamentoInstancia) graficoFaturamentoInstancia.destroy();
 
@@ -797,7 +927,6 @@
                 options: { responsive: true, plugins: { legend: { display: false } } }
             });
 
-            // Gráfico Produtos Mais Vendidos
             let ctxProd = document.getElementById('graficoProdutos').getContext('2d');
             if(graficoProdutosInstancia) graficoProdutosInstancia.destroy();
 
