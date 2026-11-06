@@ -319,20 +319,20 @@
         </div>
     </div>
 
-    <!-- FIREBASE SDK & APP LOGIC -->
+    <!-- SCRIPT PRINCIPAL UNIFICADO COM FIREBASE CONFIGURADO -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let envConfig = null;
-        try {
-            if (typeof process !== "undefined" && process.env && process.env.NEXT_PUBLIC_FIREBASE_CONFIG) {
-                envConfig = JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG);
-            }
-        } catch (e) {}
+        // Variáveis globais acessíveis em todo o app
+        window.produtos = JSON.parse(localStorage.getItem('doceria_produtos')) || [];
+        window.vendas = JSON.parse(localStorage.getItem('doceria_vendas')) || [];
+        window.clientes = JSON.parse(localStorage.getItem('doceria_clientes')) || [];
+        window.configPix = JSON.parse(localStorage.getItem('doceria_config')) || { chave: '', nome: '', cidade: 'Sao Paulo' };
 
-        const firebaseConfig = envConfig || window.FIREBASE_CONFIG || {
-            apiKey: AIzaSyCPow2202kEKwBj_nKclAE9V3ewoy9j_RA",
+        // Sua configuração oficial do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCPow2202kEKwBj_nKclAE9V3ewoy9j_RA",
             authDomain: "maraisadoces-6b54c.firebaseapp.com",
             projectId: "maraisadoces-6b54c",
             storageBucket: "maraisadoces-6b54c.firebasestorage.app",
@@ -350,14 +350,10 @@
             document.getElementById('status-conexao').className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
             document.getElementById('txt-status-conexao').innerText = 'Nuvem Conectada';
         } catch (e) {
+            console.error("Erro ao conectar ao Firebase:", e);
             document.getElementById('status-conexao').className = 'inline-block w-2 h-2 rounded-full bg-amber-400';
             document.getElementById('txt-status-conexao').innerText = 'Modo Local (Offline)';
         }
-
-        window.produtos = JSON.parse(localStorage.getItem('doceria_produtos')) || [];
-        window.vendas = JSON.parse(localStorage.getItem('doceria_vendas')) || [];
-        window.clientes = JSON.parse(localStorage.getItem('doceria_clientes')) || [];
-        window.configPix = JSON.parse(localStorage.getItem('doceria_config')) || { chave: '', nome: '', cidade: 'Sao Paulo' };
 
         if (firebaseAtivo && db) {
             onSnapshot(collection(db, "produtos"), (snapshot) => {
@@ -394,32 +390,26 @@
 
         window.deletarItemNuvem = function(colecao, id) {
             let itemId = String(id);
-            window[colecao] = window[colecao].filter(x => String(x.id) !== itemId);
+            if (colecao === 'produtos') window.produtos = window.produtos.filter(x => String(x.id) !== itemId);
+            if (colecao === 'clientes') window.clientes = window.clientes.filter(x => String(x.id) !== itemId);
+            if (colecao === 'vendas') window.vendas = window.vendas.filter(x => String(x.id) !== itemId);
+            
             localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
             if (firebaseAtivo && db) {
                 deleteDoc(doc(db, colecao, itemId)).catch(e => console.error("Erro deletando no Firebase:", e));
             }
         }
 
-        window.renderizarApp = function() {
+        function renderizarApp() {
             atualizarPainel();
             renderizarProdutos();
             renderizarVendas();
             renderizarClientes();
             atualizarSelects();
         }
-    </script>
 
-    <script>
-        let qrcodeObj = null;
-        let graficoFaturamentoInstancia = null;
-        let graficoProdutosInstancia = null;
-
-        window.onload = function() {
-            if(window.renderizarApp) window.renderizarApp();
-        };
-
-        function mudarAba(aba) {
+        // --- FUNÇÕES DE NAVEGAÇÃO E MODAIS ---
+        window.mudarAba = function(aba) {
             ['painel', 'estoque', 'vendas', 'clientes', 'relatorios'].forEach(a => {
                 document.getElementById(`aba-${a}`).classList.add('hidden');
                 document.getElementById(`nav-${a}`).className = "flex flex-col items-center text-slate-400 hover:text-slate-600 transition";
@@ -430,27 +420,27 @@
             if(aba === 'relatorios') renderizarGraficos();
         }
 
-        // --- CONFIGURAÇÕES ---
-        function abrirConfiguracoes() {
-            document.getElementById('cfg-chave').value = configPix.chave || '';
-            document.getElementById('cfg-nome').value = configPix.nome || '';
-            document.getElementById('cfg-cidade').value = configPix.cidade || '';
+        // Configurações Pix
+        window.abrirConfiguracoes = function() {
+            document.getElementById('cfg-chave').value = window.configPix.chave || '';
+            document.getElementById('cfg-nome').value = window.configPix.nome || '';
+            document.getElementById('cfg-cidade').value = window.configPix.cidade || '';
             document.getElementById('modal-config').classList.remove('hidden');
         }
-        function fecharConfiguracoes() { document.getElementById('modal-config').classList.add('hidden'); }
-        function salvarConfiguracoes() {
-            configPix = {
+        window.fecharConfiguracoes = function() { document.getElementById('modal-config').classList.add('hidden'); }
+        window.salvarConfiguracoes = function() {
+            window.configPix = {
                 chave: document.getElementById('cfg-chave').value,
                 nome: document.getElementById('cfg-nome').value,
                 cidade: document.getElementById('cfg-cidade').value
             };
-            if(window.salvarItemNuvem) window.salvarItemNuvem('config', { id: 'pix', ...configPix });
-            fecharConfiguracoes();
+            if(window.salvarItemNuvem) window.salvarItemNuvem('config', { id: 'pix', ...window.configPix });
+            window.fecharConfiguracoes();
             alert('Configurações salvas com sucesso!');
         }
 
-        // --- ESTOQUE ---
-        function abrirModalEstoque(id = null) {
+        // Estoque
+        window.abrirModalEstoque = function(id = null) {
             document.getElementById('prod-id').value = '';
             document.getElementById('prod-nome').value = '';
             document.getElementById('prod-custo').value = '';
@@ -459,7 +449,7 @@
             document.getElementById('sugestao-lucro').innerText = 'Lucro sugerido: 50%';
 
             if(id !== null) {
-                let p = produtos.find(x => String(x.id) === String(id));
+                let p = window.produtos.find(x => String(x.id) === String(id));
                 if(p) {
                     document.getElementById('prod-id').value = p.id;
                     document.getElementById('prod-nome').value = p.nome;
@@ -470,14 +460,14 @@
             }
             document.getElementById('modal-estoque').classList.remove('hidden');
         }
-        function fecharModalEstoque() { document.getElementById('modal-estoque').classList.add('hidden'); }
+        window.fecharModalEstoque = function() { document.getElementById('modal-estoque').classList.add('hidden'); }
 
-        function calcularSugestaoPreco() {
+        window.calcularSugestaoPreco = function() {
             let custo = parseFloat(document.getElementById('prod-custo').value) || 0;
             document.getElementById('prod-preco').value = (custo * 1.5).toFixed(2);
         }
 
-        function salvarProduto() {
+        window.salvarProduto = function() {
             let id = document.getElementById('prod-id').value;
             let nomeInput = document.getElementById('prod-nome').value.trim();
             let custo = parseFloat(document.getElementById('prod-custo').value) || 0;
@@ -494,7 +484,7 @@
             let itemSalvar = null;
 
             if(id === '') {
-                let produtoExistente = produtos.find(x => x.nome.toLowerCase() === nomeInput.toLowerCase());
+                let produtoExistente = window.produtos.find(x => x.nome.toLowerCase() === nomeInput.toLowerCase());
 
                 if(produtoExistente) {
                     produtoExistente.qtd += qtdAdicionar;
@@ -511,10 +501,10 @@
                         vendidosTotal: 0,
                         dataCadastro: dataHoraFormatada
                     };
-                    produtos.push(itemSalvar);
+                    window.produtos.push(itemSalvar);
                 }
             } else {
-                let p = produtos.find(x => String(x.id) === String(id));
+                let p = window.produtos.find(x => String(x.id) === String(id));
                 if(p) {
                     p.nome = nomeInput;
                     p.custo = custo;
@@ -525,15 +515,15 @@
             }
 
             if(window.salvarItemNuvem && itemSalvar) window.salvarItemNuvem('produtos', itemSalvar);
-            fecharModalEstoque();
-            if(window.renderizarApp) window.renderizarApp();
+            window.fecharModalEstoque();
+            renderizarApp();
         }
 
-        function deletarProduto(id) {
-            let p = produtos.find(x => String(x.id) === String(id));
+        window.deletarProduto = function(id) {
+            let p = window.produtos.find(x => String(x.id) === String(id));
             if(!p) return;
 
-            let temVendas = vendas.some(v => v.produtoNome.toLowerCase() === p.nome.toLowerCase());
+            let temVendas = window.vendas.some(v => v.produtoNome.toLowerCase() === p.nome.toLowerCase());
             if(temVendas) {
                 alert(`⚠️ Não é possível excluir "${p.nome}" pois ele possui vendas no histórico.`);
                 return;
@@ -541,16 +531,16 @@
 
             if(confirm(`Deseja excluir "${p.nome}"?`)) {
                 if(window.deletarItemNuvem) window.deletarItemNuvem('produtos', id);
-                if(window.renderizarApp) window.renderizarApp();
+                renderizarApp();
             }
         }
 
         function renderizarProdutos() {
             let html = '';
-            if(produtos.length === 0) {
+            if(window.produtos.length === 0) {
                 html = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 border border-slate-100">Nenhum doce cadastrado.</div>`;
             } else {
-                produtos.forEach(p => {
+                window.produtos.forEach(p => {
                     let qtdVendida = p.vendidosTotal || 0;
                     let qtdComprada = p.qtd + qtdVendida;
                     let totalCompra = p.custo * qtdComprada;
@@ -598,15 +588,15 @@
             document.getElementById('grid-produtos').innerHTML = html;
         }
 
-        // --- CLIENTES ---
-        function abrirModalCliente() {
+        // Clientes
+        window.abrirModalCliente = function() {
             document.getElementById('cli-nome').value = '';
             document.getElementById('cli-tel').value = '';
             document.getElementById('modal-cliente').classList.remove('hidden');
         }
-        function fecharModalCliente() { document.getElementById('modal-cliente').classList.add('hidden'); }
+        window.fecharModalCliente = function() { document.getElementById('modal-cliente').classList.add('hidden'); }
 
-        function salvarCliente() {
+        window.salvarCliente = function() {
             let nomeInput = document.getElementById('cli-nome').value.trim();
             let telefone = document.getElementById('cli-tel').value.trim();
             
@@ -615,28 +605,27 @@
                 return; 
             }
 
-            // IMPEDITIVO: Verifica se já existe um cliente com o mesmo nome (ignorando maiúsculas/minúsculas)
-            let clienteExistente = clientes.find(c => c.nome.toLowerCase() === nomeInput.toLowerCase());
+            let clienteExistente = window.clientes.find(c => c.nome.toLowerCase() === nomeInput.toLowerCase());
             if(clienteExistente) {
                 alert(`⚠️ O cliente "${clienteExistente.nome}" já está cadastrado no sistema!`);
                 return;
             }
 
             let novoCliente = { id: Date.now(), nome: nomeInput, telefone, divida: 0 };
-            clientes.push(novoCliente);
+            window.clientes.push(novoCliente);
             
             if(window.salvarItemNuvem) window.salvarItemNuvem('clientes', novoCliente);
             
-            fecharModalCliente();
-            if(window.renderizarApp) window.renderizarApp();
+            window.fecharModalCliente();
+            renderizarApp();
         }
 
         function renderizarClientes() {
             let html = '';
-            if(clientes.length === 0) {
+            if(window.clientes.length === 0) {
                 html = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 border border-slate-100">Nenhum cliente cadastrado.</div>`;
             } else {
-                clientes.forEach(c => {
+                window.clientes.forEach(c => {
                     html += `
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                             <div>
@@ -664,20 +653,20 @@
             document.getElementById('lista-clientes').innerHTML = html;
         }
 
-        // --- VENDAS ---
-        function abrirModalVenda() {
-            if(produtos.length === 0) { alert('Cadastre ao menos um produto primeiro!'); mudarAba('estoque'); return; }
+        // Vendas
+        window.abrirModalVenda = function() {
+            if(window.produtos.length === 0) { alert('Cadastre ao menos um produto primeiro!'); mudarAba('estoque'); return; }
             document.getElementById('venda-qtd').value = 1;
             document.getElementById('venda-pagamento').value = 'pago';
             document.getElementById('grupo-cliente').classList.add('hidden');
             document.getElementById('modal-venda').classList.remove('hidden');
         }
-        function fecharModalVenda() { document.getElementById('modal-venda').classList.add('hidden'); }
+        window.fecharModalVenda = function() { document.getElementById('modal-venda').classList.add('hidden'); }
 
-        function alternarCampoCliente() {
+        window.alternarCampoCliente = function() {
             let tipo = document.getElementById('venda-pagamento').value;
             if(tipo === 'fiado') {
-                if(clientes.length === 0) {
+                if(window.clientes.length === 0) {
                     alert('Cadastre um cliente antes de vender fiado!');
                     document.getElementById('venda-pagamento').value = 'pago';
                     return;
@@ -688,13 +677,13 @@
             }
         }
 
-        function salvarVenda() {
+        window.salvarVenda = function() {
             let produtoId = document.getElementById('venda-produto').value;
             let qtd = parseInt(document.getElementById('venda-qtd').value) || 0;
             let tipoPagamento = document.getElementById('venda-pagamento').value;
             let clienteId = document.getElementById('venda-cliente').value;
 
-            let prod = produtos.find(x => String(x.id) === String(produtoId));
+            let prod = window.produtos.find(x => String(x.id) === String(produtoId));
             if(!prod || qtd <= 0) { alert('Selecione um produto e quantidade válida!'); return; }
             if(prod.qtd < qtd) { alert(`Estoque insuficiente! Restam apenas ${prod.qtd} unidades.`); return; }
 
@@ -708,7 +697,7 @@
             if(window.salvarItemNuvem) window.salvarItemNuvem('produtos', prod);
 
             if(tipoPagamento === 'fiado') {
-                let cli = clientes.find(x => String(x.id) === String(clienteId));
+                let cli = window.clientes.find(x => String(x.id) === String(clienteId));
                 if(cli) {
                     cli.divida += totalVenda;
                     nomeClienteVenda = cli.nome;
@@ -732,11 +721,11 @@
                 dataObjeto: agora.toISOString()
             };
 
-            vendas.unshift(novaVenda);
+            window.vendas.unshift(novaVenda);
             if(window.salvarItemNuvem) window.salvarItemNuvem('vendas', novaVenda);
 
-            fecharModalVenda();
-            if(window.renderizarApp) window.renderizarApp();
+            window.fecharModalVenda();
+            renderizarApp();
 
             if(confirm('Venda registrada com sucesso! Deseja enviar o comprovante via WhatsApp?')) {
                 enviarComprovanteWhatsApp(novaVenda);
@@ -748,14 +737,14 @@
             let custoTotalEstoque = 0;
             let produtosPoucoEstoque = [];
 
-            produtos.forEach(p => {
+            window.produtos.forEach(p => {
                 qtdTotalProdutos += p.qtd;
                 custoTotalEstoque += (p.custo * (p.qtd + (p.vendidosTotal || 0)));
                 if(p.qtd <= 5) produtosPoucoEstoque.push(`${p.nome} (${p.qtd} un)`);
             });
 
             let faturamentoPagoTotal = 0;
-            vendas.forEach(v => {
+            window.vendas.forEach(v => {
                 if(v.tipo === 'pago') faturamentoPagoTotal += v.total;
             });
 
@@ -772,11 +761,11 @@
 
             let html = '';
             let htmlUl = '';
-            if(vendas.length === 0) {
+            if(window.vendas.length === 0) {
                 html = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 border border-slate-100">Nenhuma venda registrada.</div>`;
                 htmlUl = `<p class="text-xs text-slate-400 text-center py-2">Nenhuma venda recente.</p>`;
             } else {
-                vendas.forEach((v, index) => {
+                window.vendas.forEach((v, index) => {
                     let card = `
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                             <div>
@@ -800,8 +789,8 @@
             document.getElementById('lista-ultimas-vendas').innerHTML = htmlUl;
         }
 
-        function quitarDivida(clienteId) {
-            let cli = clientes.find(x => String(x.id) === String(clienteId));
+        window.quitarDivida = function(clienteId) {
+            let cli = window.clientes.find(x => String(x.id) === String(clienteId));
             if(cli && cli.divida > 0) {
                 if(confirm(`Confirmar o recebimento de R$ ${cli.divida.toFixed(2)} quitando a dívida de ${cli.nome}?`)) {
                     let agora = new Date();
@@ -819,7 +808,7 @@
                         dataObjeto: agora.toISOString()
                     };
 
-                    vendas.unshift(vendaQuitacao);
+                    window.vendas.unshift(vendaQuitacao);
                     cli.divida = 0;
 
                     if(window.salvarItemNuvem) {
@@ -827,14 +816,14 @@
                         window.salvarItemNuvem('clientes', cli);
                     }
 
-                    if(window.renderizarApp) window.renderizarApp();
+                    renderizarApp();
                     alert('Dívida quitada com sucesso!');
                 }
             }
         }
 
-        // --- WHATSAPP E PIX ---
-        function enviarComprovanteWhatsApp(venda) {
+        // WhatsApp e Pix
+        window.enviarComprovanteWhatsApp = function(venda) {
             let texto = `*Comprovante de Compra - DoceGestão* 🍬\n\n` +
                         `🛒 *Produto:* ${venda.produtoNome}\n` +
                         `📦 *Quantidade:* ${venda.qtd}\n` +
@@ -845,8 +834,8 @@
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
         }
 
-        function cobrarWhatsappCliente(clienteId) {
-            let cli = clientes.find(x => String(x.id) === String(clienteId));
+        window.cobrarWhatsappCliente = function(clienteId) {
+            let cli = window.clientes.find(x => String(x.id) === String(clienteId));
             if(cli && cli.divida > 0) {
                 let payloadPix = gerarPayloadPix(cli.divida);
                 let texto = `Olá *${cli.nome}*, tudo bem? Lembrete referente à sua pendência de *R$ ${cli.divida.toFixed(2)}* na DoceGestão.\n\n` +
@@ -856,16 +845,16 @@
         }
 
         function gerarPayloadPix(valor) {
-            let chave = configPix.chave || '';
-            let nome = configPix.nome || 'DoceGestao';
-            let cidade = configPix.cidade || 'Sao Paulo';
+            let chave = window.configPix.chave || '';
+            let nome = window.configPix.nome || 'DoceGestao';
+            let cidade = window.configPix.cidade || 'Sao Paulo';
             return `00020126580014br.gov.bcb.pix0136${chave}5204000053039865802BR5925${nome}6009${cidade}62070503***6304`;
         }
 
-        function cobrarPixCliente(clienteId) {
-            let cli = clientes.find(x => String(x.id) === String(clienteId));
+        window.cobrarPixCliente = function(clienteId) {
+            let cli = window.clientes.find(x => String(x.id) === String(clienteId));
             if(cli && cli.divida > 0) {
-                if(!configPix.chave) {
+                if(!window.configPix.chave) {
                     alert('Configure sua chave Pix nas Configurações (⚙️) antes de gerar cobranças!');
                     abrirConfiguracoes();
                     return;
@@ -875,19 +864,19 @@
                 let payload = gerarPayloadPix(cli.divida);
                 document.getElementById('pix-copia-cola').value = payload;
                 document.getElementById('qrcode').innerHTML = '';
-                qrcodeObj = new QRCode(document.getElementById('qrcode'), { text: payload, width: 180, height: 180 });
+                new QRCode(document.getElementById('qrcode'), { text: payload, width: 180, height: 180 });
                 document.getElementById('modal-pix').classList.remove('hidden');
             }
         }
-        function fecharModalPix() { document.getElementById('modal-pix').classList.add('hidden'); }
-        function copiarCodigoPix() {
+        window.fecharModalPix = function() { document.getElementById('modal-pix').classList.add('hidden'); }
+        window.copiarCodigoPix = function() {
             let copyText = document.getElementById('pix-copia-cola');
             copyText.select();
             navigator.clipboard.writeText(copyText.value);
             alert('Código Pix copiado!');
         }
 
-        // --- PAINEL E RELATÓRIOS ---
+        // Painel e Relatórios
         function atualizarPainel() {
             let faturamentoTotal = 0;
             let lucroTotal = 0;
@@ -898,7 +887,7 @@
             let mesAtual = agora.getMonth();
             let anoAtual = agora.getFullYear();
 
-            vendas.forEach(v => {
+            window.vendas.forEach(v => {
                 faturamentoTotal += v.total;
                 lucroTotal += v.lucro;
 
@@ -907,14 +896,14 @@
                     if (dataVenda) {
                         let ehMesAnterior = (dataVenda.getFullYear() < anoAtual) || (dataVenda.getFullYear() === anoAtual && dataVenda.getMonth() < mesAtual);
                         if (ehMesAnterior) {
-                            let cli = clientes.find(c => String(c.id) === String(v.clienteId));
+                            let cli = window.clientes.find(c => String(c.id) === String(v.clienteId));
                             if (cli && cli.divida > 0) fiadoMesAnterior += Math.min(v.total, cli.divida);
                         }
                     }
                 }
             });
 
-            clientes.forEach(c => fiadoTotal += c.divida);
+            window.clientes.forEach(c => fiadoTotal += c.divida);
 
             document.getElementById('lbl-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
             document.getElementById('lbl-lucro').innerText = `R$ ${lucroTotal.toFixed(2)}`;
@@ -925,16 +914,19 @@
         function atualizarSelects() {
             let selProd = document.getElementById('venda-produto');
             let selCli = document.getElementById('venda-cliente');
-            if(selProd) selProd.innerHTML = produtos.map(p => `<option value="${p.id}">${p.nome} - R$ ${p.preco.toFixed(2)} (${p.qtd} disp)</option>`).join('');
-            if(selCli) selCli.innerHTML = clientes.map(c => `<option value="${c.id}">${c.nome} (Devendo: R$ ${c.divida.toFixed(2)})</option>`).join('');
+            if(selProd) selProd.innerHTML = window.produtos.map(p => `<option value="${p.id}">${p.nome} - R$ ${p.preco.toFixed(2)} (${p.qtd} disp)</option>`).join('');
+            if(selCli) selCli.innerHTML = window.clientes.map(c => `<option value="${c.id}">${c.nome} (Devendo: R$ ${c.divida.toFixed(2)})</option>`).join('');
         }
+
+        let graficoFaturamentoInstancia = null;
+        let graficoProdutosInstancia = null;
 
         function renderizarGraficos() {
             let hojeStr = new Date().toLocaleDateString('pt-BR');
             let faturamentoHoje = 0;
             let faturamentoGeral = 0;
 
-            vendas.forEach(v => {
+            window.vendas.forEach(v => {
                 faturamentoGeral += v.total;
                 if(v.dataHora && v.dataHora.startsWith(hojeStr)) faturamentoHoje += v.total;
             });
@@ -965,10 +957,10 @@
             graficoProdutosInstancia = new Chart(ctxProd, {
                 type: 'bar',
                 data: {
-                    labels: produtos.length > 0 ? produtos.map(p => p.nome) : ['Nenhum'],
+                    labels: window.produtos.length > 0 ? window.produtos.map(p => p.nome) : ['Nenhum'],
                     datasets: [{
                         label: 'Unidades Vendidas',
-                        data: produtos.length > 0 ? produtos.map(p => p.vendidosTotal || 0) : [0],
+                        data: window.produtos.length > 0 ? window.produtos.map(p => p.vendidosTotal || 0) : [0],
                         backgroundColor: '#f472b6', borderRadius: 8
                     }]
                 },
@@ -976,9 +968,9 @@
             });
         }
 
-        function exportarCSV() {
+        window.exportarCSV = function() {
             let csvContent = "data:text/csv;charset=utf-8,ID,Produto,Quantidade,Total,Lucro,Tipo,Cliente,DataHora\n";
-            vendas.forEach(v => { csvContent += `${v.id},${v.produtoNome},${v.qtd},${v.total},${v.lucro},${v.tipo},${v.cliente},${v.dataHora}\n`; });
+            window.vendas.forEach(v => { csvContent += `${v.id},${v.produtoNome},${v.qtd},${v.total},${v.lucro},${v.tipo},${v.cliente},${v.dataHora}\n`; });
             let encodedUri = encodeURI(csvContent);
             let link = document.createElement("a");
             link.setAttribute("href", encodedUri);
@@ -987,6 +979,10 @@
             link.click();
             document.body.removeChild(link);
         }
+
+        window.onload = function() {
+            renderizarApp();
+        };
     </script>
 </body>
 </html>
