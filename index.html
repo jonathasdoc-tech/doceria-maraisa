@@ -384,25 +384,20 @@
             });
         }
 
-        window.salvarItemNuvem = async function(colecao, item) {
+        window.salvarItemNuvem = function(colecao, item) {
             let itemId = String(item.id);
-            // Salva localmente primeiro para resposta instantânea
             localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
             if (firebaseAtivo && db) {
-                try {
-                    await setDoc(doc(db, colecao, itemId), item);
-                } catch(e) { console.error("Erro salvando no Firebase:", e); }
+                setDoc(doc(db, colecao, itemId), item).catch(e => console.error("Erro salvando no Firebase:", e));
             }
         }
 
-        window.deletarItemNuvem = async function(colecao, id) {
+        window.deletarItemNuvem = function(colecao, id) {
             let itemId = String(id);
             window[colecao] = window[colecao].filter(x => String(x.id) !== itemId);
             localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
             if (firebaseAtivo && db) {
-                try {
-                    await deleteDoc(doc(db, colecao, itemId));
-                } catch(e) { console.error("Erro deletando no Firebase:", e); }
+                deleteDoc(doc(db, colecao, itemId)).catch(e => console.error("Erro deletando no Firebase:", e));
             }
         }
 
@@ -443,13 +438,13 @@
             document.getElementById('modal-config').classList.remove('hidden');
         }
         function fecharConfiguracoes() { document.getElementById('modal-config').classList.add('hidden'); }
-        async function salvarConfiguracoes() {
+        function salvarConfiguracoes() {
             configPix = {
                 chave: document.getElementById('cfg-chave').value,
                 nome: document.getElementById('cfg-nome').value,
                 cidade: document.getElementById('cfg-cidade').value
             };
-            if(window.salvarItemNuvem) await window.salvarItemNuvem('config', { id: 'pix', ...configPix });
+            if(window.salvarItemNuvem) window.salvarItemNuvem('config', { id: 'pix', ...configPix });
             fecharConfiguracoes();
             alert('Configurações salvas com sucesso!');
         }
@@ -482,7 +477,7 @@
             document.getElementById('prod-preco').value = (custo * 1.5).toFixed(2);
         }
 
-        async function salvarProduto() {
+        function salvarProduto() {
             let id = document.getElementById('prod-id').value;
             let nomeInput = document.getElementById('prod-nome').value.trim();
             let custo = parseFloat(document.getElementById('prod-custo').value) || 0;
@@ -529,12 +524,12 @@
                 }
             }
 
-            if(window.salvarItemNuvem && itemSalvar) await window.salvarItemNuvem('produtos', itemSalvar);
+            if(window.salvarItemNuvem && itemSalvar) window.salvarItemNuvem('produtos', itemSalvar);
             fecharModalEstoque();
             if(window.renderizarApp) window.renderizarApp();
         }
 
-        async function deletarProduto(id) {
+        function deletarProduto(id) {
             let p = produtos.find(x => String(x.id) === String(id));
             if(!p) return;
 
@@ -545,7 +540,7 @@
             }
 
             if(confirm(`Deseja excluir "${p.nome}"?`)) {
-                if(window.deletarItemNuvem) await window.deletarItemNuvem('produtos', id);
+                if(window.deletarItemNuvem) window.deletarItemNuvem('produtos', id);
                 if(window.renderizarApp) window.renderizarApp();
             }
         }
@@ -611,14 +606,27 @@
         }
         function fecharModalCliente() { document.getElementById('modal-cliente').classList.add('hidden'); }
 
-        async function salvarCliente() {
-            let nome = document.getElementById('cli-nome').value.trim();
+        function salvarCliente() {
+            let nomeInput = document.getElementById('cli-nome').value.trim();
             let telefone = document.getElementById('cli-tel').value.trim();
-            if(!nome) { alert('Informe o nome do cliente!'); return; }
+            
+            if(!nomeInput) { 
+                alert('Informe o nome do cliente!'); 
+                return; 
+            }
 
-            let novoCliente = { id: Date.now(), nome, telefone, divida: 0 };
+            // IMPEDITIVO: Verifica se já existe um cliente com o mesmo nome (ignorando maiúsculas/minúsculas)
+            let clienteExistente = clientes.find(c => c.nome.toLowerCase() === nomeInput.toLowerCase());
+            if(clienteExistente) {
+                alert(`⚠️ O cliente "${clienteExistente.nome}" já está cadastrado no sistema!`);
+                return;
+            }
+
+            let novoCliente = { id: Date.now(), nome: nomeInput, telefone, divida: 0 };
             clientes.push(novoCliente);
-            if(window.salvarItemNuvem) await window.salvarItemNuvem('clientes', novoCliente);
+            
+            if(window.salvarItemNuvem) window.salvarItemNuvem('clientes', novoCliente);
+            
             fecharModalCliente();
             if(window.renderizarApp) window.renderizarApp();
         }
@@ -680,7 +688,7 @@
             }
         }
 
-        async function salvarVenda() {
+        function salvarVenda() {
             let produtoId = document.getElementById('venda-produto').value;
             let qtd = parseInt(document.getElementById('venda-qtd').value) || 0;
             let tipoPagamento = document.getElementById('venda-pagamento').value;
@@ -697,14 +705,14 @@
 
             prod.qtd -= qtd;
             prod.vendidosTotal = (prod.vendidosTotal || 0) + qtd;
-            if(window.salvarItemNuvem) await window.salvarItemNuvem('produtos', prod);
+            if(window.salvarItemNuvem) window.salvarItemNuvem('produtos', prod);
 
             if(tipoPagamento === 'fiado') {
                 let cli = clientes.find(x => String(x.id) === String(clienteId));
                 if(cli) {
                     cli.divida += totalVenda;
                     nomeClienteVenda = cli.nome;
-                    if(window.salvarItemNuvem) await window.salvarItemNuvem('clientes', cli);
+                    if(window.salvarItemNuvem) window.salvarItemNuvem('clientes', cli);
                 }
             }
 
@@ -725,7 +733,7 @@
             };
 
             vendas.unshift(novaVenda);
-            if(window.salvarItemNuvem) await window.salvarItemNuvem('vendas', novaVenda);
+            if(window.salvarItemNuvem) window.salvarItemNuvem('vendas', novaVenda);
 
             fecharModalVenda();
             if(window.renderizarApp) window.renderizarApp();
@@ -792,7 +800,7 @@
             document.getElementById('lista-ultimas-vendas').innerHTML = htmlUl;
         }
 
-        async function quitarDivida(clienteId) {
+        function quitarDivida(clienteId) {
             let cli = clientes.find(x => String(x.id) === String(clienteId));
             if(cli && cli.divida > 0) {
                 if(confirm(`Confirmar o recebimento de R$ ${cli.divida.toFixed(2)} quitando a dívida de ${cli.nome}?`)) {
@@ -815,8 +823,8 @@
                     cli.divida = 0;
 
                     if(window.salvarItemNuvem) {
-                        await window.salvarItemNuvem('vendas', vendaQuitacao);
-                        await window.salvarItemNuvem('clientes', cli);
+                        window.salvarItemNuvem('vendas', vendaQuitacao);
+                        window.salvarItemNuvem('clientes', cli);
                     }
 
                     if(window.renderizarApp) window.renderizarApp();
