@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DoceGestão - Controle de Estoque e Vendas</title>
     <!-- Tailwind CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.4"></script>
+    <style>.hidden{display:none !important}</style>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- QRCode.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans pb-24">
 
@@ -55,7 +56,7 @@
                     <h2 id="lbl-fiado" class="text-xl font-bold text-rose-600 mt-1">R$ 0,00</h2>
                 </div>
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                    <p class="text-xs text-slate-500 font-medium">Fiado Mês Anterior</p>
+                    <p class="text-xs text-slate-500 font-medium">Fiado de Meses Anteriores</p>
                     <h2 id="lbl-fiado-mes-anterior" class="text-xl font-bold text-amber-600 mt-1">R$ 0,00</h2>
                 </div>
             </div>
@@ -160,7 +161,7 @@
             </div>
 
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <h3 class="font-bold text-slate-800 mb-2 text-sm">Faturamento por Período</h3>
+                <h3 class="font-bold text-slate-800 mb-2 text-sm">Faturamento - Últimos 7 dias</h3>
                 <canvas id="graficoFaturamento" height="120"></canvas>
             </div>
 
@@ -198,7 +199,7 @@
 
     <!-- MODAIS -->
     <div id="modal-estoque" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto space-y-4 shadow-xl">
             <h3 id="titulo-modal-estoque" class="font-bold text-lg text-slate-800">Novo Doce / Bala</h3>
             <input type="hidden" id="prod-id">
             <div>
@@ -220,7 +221,7 @@
                     <span>Preço de Venda (R$)</span>
                     <span id="sugestao-lucro" class="text-emerald-600 font-bold">Lucro sugerido: 50%</span>
                 </label>
-                <input type="number" step="0.01" id="prod-preco" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500" placeholder="0.00">
+                <input type="number" step="0.01" id="prod-preco" oninput="this.dataset.manual='1'; mostrarMargem()" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500" placeholder="0.00">
             </div>
             <div class="flex gap-2 pt-2">
                 <button onclick="fecharModalEstoque()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-sm">Cancelar</button>
@@ -230,7 +231,7 @@
     </div>
 
     <div id="modal-venda" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto space-y-4 shadow-xl">
             <h3 class="font-bold text-lg text-slate-800">Registrar Nova Venda</h3>
             <div>
                 <label class="text-xs font-semibold text-slate-600">Selecione o Doce</label>
@@ -259,7 +260,7 @@
     </div>
 
     <div id="modal-cliente" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto space-y-4 shadow-xl">
             <h3 class="font-bold text-lg text-slate-800">Novo Cliente</h3>
             <div>
                 <label class="text-xs font-semibold text-slate-600">Nome do Cliente</label>
@@ -277,7 +278,7 @@
     </div>
 
     <div id="modal-pix" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-xl text-center">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto space-y-4 shadow-xl text-center">
             <h3 class="font-bold text-lg text-slate-800">Cobrança Pix</h3>
             <p id="pix-info-cliente" class="text-xs text-slate-500 font-medium"></p>
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center justify-center">
@@ -298,11 +299,11 @@
     </div>
 
     <div id="modal-config" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto space-y-4 shadow-xl">
             <h3 class="font-bold text-lg text-slate-800">Configurações do Pix</h3>
             <div>
                 <label class="text-xs font-semibold text-slate-600">Chave Pix</label>
-                <input type="text" id="cfg-chave" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500" placeholder="CPF, Tel, E-mail ou Chave Aleatória">
+                <input type="text" id="cfg-chave" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500" placeholder="CPF, E-mail, +5519999999999 ou Aleatória">
             </div>
             <div>
                 <label class="text-xs font-semibold text-slate-600">Seu Nome (Beneficiário)</label>
@@ -324,11 +325,38 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        function lerLocal(chave, padrao) {
+            try { const v = JSON.parse(localStorage.getItem(chave)); return v ?? padrao; } catch (e) { return padrao; }
+        }
+        function salvarLocal(colecao) {
+            const dado = colecao === 'config' ? window.configPix : window[colecao];
+            try { localStorage.setItem('doceria_' + colecao, JSON.stringify(dado)); } catch (e) {}
+        }
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const ehQuitacao = v => v.quitacao === true || String(v.produtoNome || '').startsWith('Baixa de Fiado');
+        function dataVenda(v) {
+            if (v.dataObjeto) return new Date(v.dataObjeto);
+            const m = String(v.dataHora || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+            return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+        }
+        function ehMesAnterior(v) {
+            const d = dataVenda(v), n = new Date();
+            return !!d && (d.getFullYear() < n.getFullYear() || (d.getFullYear() === n.getFullYear() && d.getMonth() < n.getMonth()));
+        }
+        function foneWhats(t) { const d = String(t || '').replace(/\D/g, ''); return d && d.length <= 11 ? '55' + d : d; }
+        function atualizarStatus() {
+            const on = firebaseAtivo && navigator.onLine;
+            document.getElementById('status-conexao').className = 'inline-block w-2 h-2 rounded-full ' + (on ? 'bg-emerald-400' : 'bg-amber-400');
+            document.getElementById('txt-status-conexao').innerText = on ? 'Nuvem Conectada' : 'Modo Local (Offline)';
+        }
+        window.addEventListener('online', () => atualizarStatus());
+        window.addEventListener('offline', () => atualizarStatus());
+
         // Variáveis globais acessíveis em todo o app
-        window.produtos = JSON.parse(localStorage.getItem('doceria_produtos')) || [];
-        window.vendas = JSON.parse(localStorage.getItem('doceria_vendas')) || [];
-        window.clientes = JSON.parse(localStorage.getItem('doceria_clientes')) || [];
-        window.configPix = JSON.parse(localStorage.getItem('doceria_config')) || { chave: '', nome: '', cidade: 'Sao Paulo' };
+        window.produtos = lerLocal('doceria_produtos', []);
+        window.vendas = lerLocal('doceria_vendas', []);
+        window.clientes = lerLocal('doceria_clientes', []);
+        window.configPix = lerLocal('doceria_config', { chave: '', nome: '', cidade: 'Sao Paulo' });
 
         // Sua configuração oficial do Firebase
         const firebaseConfig = {
@@ -357,17 +385,20 @@
 
         if (firebaseAtivo && db) {
             onSnapshot(collection(db, "produtos"), (snapshot) => {
+                if (snapshot.empty && snapshot.metadata.fromCache) return; // não apaga dados locais com cache vazio
                 window.produtos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 localStorage.setItem('doceria_produtos', JSON.stringify(window.produtos));
                 renderizarApp();
             });
             onSnapshot(collection(db, "vendas"), (snapshot) => {
+                if (snapshot.empty && snapshot.metadata.fromCache) return; // não apaga dados locais com cache vazio
                 window.vendas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 window.vendas.sort((a, b) => Number(b.id) - Number(a.id));
                 localStorage.setItem('doceria_vendas', JSON.stringify(window.vendas));
                 renderizarApp();
             });
             onSnapshot(collection(db, "clientes"), (snapshot) => {
+                if (snapshot.empty && snapshot.metadata.fromCache) return; // não apaga dados locais com cache vazio
                 window.clientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 localStorage.setItem('doceria_clientes', JSON.stringify(window.clientes));
                 renderizarApp();
@@ -380,9 +411,11 @@
             });
         }
 
+        atualizarStatus();
+
         window.salvarItemNuvem = function(colecao, item) {
             let itemId = String(item.id);
-            localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
+            salvarLocal(colecao);
             if (firebaseAtivo && db) {
                 setDoc(doc(db, colecao, itemId), item).catch(e => console.error("Erro salvando no Firebase:", e));
             }
@@ -394,7 +427,7 @@
             if (colecao === 'clientes') window.clientes = window.clientes.filter(x => String(x.id) !== itemId);
             if (colecao === 'vendas') window.vendas = window.vendas.filter(x => String(x.id) !== itemId);
             
-            localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
+            salvarLocal(colecao);
             if (firebaseAtivo && db) {
                 deleteDoc(doc(db, colecao, itemId)).catch(e => console.error("Erro deletando no Firebase:", e));
             }
@@ -445,7 +478,7 @@
             document.getElementById('prod-nome').value = '';
             document.getElementById('prod-custo').value = '';
             document.getElementById('prod-qtd').value = '';
-            document.getElementById('prod-preco').value = '';
+            document.getElementById('prod-preco').value = ''; delete document.getElementById('prod-preco').dataset.manual;
             document.getElementById('sugestao-lucro').innerText = 'Lucro sugerido: 50%';
 
             if(id !== null) {
@@ -455,7 +488,7 @@
                     document.getElementById('prod-nome').value = p.nome;
                     document.getElementById('prod-custo').value = p.custo;
                     document.getElementById('prod-qtd').value = '';
-                    document.getElementById('prod-preco').value = p.preco;
+                    document.getElementById('prod-preco').value = p.preco; document.getElementById('prod-preco').dataset.manual = '1';
                 }
             }
             document.getElementById('modal-estoque').classList.remove('hidden');
@@ -464,7 +497,15 @@
 
         window.calcularSugestaoPreco = function() {
             let custo = parseFloat(document.getElementById('prod-custo').value) || 0;
-            document.getElementById('prod-preco').value = (custo * 1.5).toFixed(2);
+            let precoEl = document.getElementById('prod-preco');
+            if (!precoEl.dataset.manual) precoEl.value = (custo * 1.5).toFixed(2);
+            mostrarMargem();
+        }
+        window.mostrarMargem = function() {
+            let c = parseFloat(document.getElementById('prod-custo').value) || 0;
+            let p = parseFloat(document.getElementById('prod-preco').value) || 0;
+            document.getElementById('sugestao-lucro').innerText = (c > 0 && p > 0)
+                ? `Lucro: R$ ${(p - c).toFixed(2)}/un (${((p - c) / c * 100).toFixed(0)}% sobre o custo)` : '';
         }
 
         window.salvarProduto = function() {
@@ -474,7 +515,7 @@
             let qtdAdicionar = parseInt(document.getElementById('prod-qtd').value) || 0;
             let preco = parseFloat(document.getElementById('prod-preco').value) || 0;
 
-            if(!nomeInput || custo <= 0 || preco <= 0 || qtdAdicionar <= 0) {
+            if(!nomeInput || custo <= 0 || preco <= 0 || qtdAdicionar < 0 || (id === '' && qtdAdicionar <= 0)) {
                 alert('Preencha todos os campos corretamente!');
                 return;
             }
@@ -487,8 +528,8 @@
                 let produtoExistente = window.produtos.find(x => x.nome.toLowerCase() === nomeInput.toLowerCase());
 
                 if(produtoExistente) {
+                    produtoExistente.custo = Number(((produtoExistente.qtd * produtoExistente.custo + qtdAdicionar * custo) / (produtoExistente.qtd + qtdAdicionar)).toFixed(4)); // custo médio
                     produtoExistente.qtd += qtdAdicionar;
-                    produtoExistente.custo = custo;
                     produtoExistente.preco = preco;
                     itemSalvar = produtoExistente;
                 } else {
@@ -523,7 +564,7 @@
             let p = window.produtos.find(x => String(x.id) === String(id));
             if(!p) return;
 
-            let temVendas = window.vendas.some(v => v.produtoNome.toLowerCase() === p.nome.toLowerCase());
+            let temVendas = window.vendas.some(v => String(v.produtoId) === String(p.id) || String(v.produtoNome).toLowerCase() === p.nome.toLowerCase());
             if(temVendas) {
                 alert(`⚠️ Não é possível excluir "${p.nome}" pois ele possui vendas no histórico.`);
                 return;
@@ -550,7 +591,7 @@
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <h4 class="font-bold text-slate-900 text-base">${p.nome}</h4>
+                                    <h4 class="font-bold text-slate-900 text-base">${esc(p.nome)}</h4>
                                     <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-clock"></i> ${p.dataCadastro || 'Cadastro antigo'}</p>
                                 </div>
                                 <div class="flex gap-1">
@@ -629,8 +670,8 @@
                     html += `
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                             <div>
-                                <h4 class="font-bold text-slate-900">${c.nome}</h4>
-                                <p class="text-xs text-slate-500">${c.telefone || 'Sem telefone'}</p>
+                                <h4 class="font-bold text-slate-900">${esc(c.nome)}</h4>
+                                <p class="text-xs text-slate-500">${esc(c.telefone) || 'Sem telefone'}</p>
                                 <p class="text-xs font-semibold mt-1 ${c.divida > 0 ? 'text-rose-600' : 'text-slate-500'}">Devendo: R$ ${c.divida.toFixed(2)}</p>
                             </div>
                             <div class="flex items-center gap-1.5">
@@ -710,6 +751,7 @@
 
             let novaVenda = {
                 id: Date.now(),
+                produtoId: prod.id,
                 produtoNome: prod.nome,
                 qtd,
                 total: totalVenda,
@@ -740,7 +782,7 @@
             window.produtos.forEach(p => {
                 qtdTotalProdutos += p.qtd;
                 custoTotalEstoque += (p.custo * (p.qtd + (p.vendidosTotal || 0)));
-                if(p.qtd <= 5) produtosPoucoEstoque.push(`${p.nome} (${p.qtd} un)`);
+                if(p.qtd <= 5) produtosPoucoEstoque.push(`${esc(p.nome)} (${p.qtd} un)`);
             });
 
             let faturamentoPagoTotal = 0;
@@ -769,8 +811,8 @@
                     let card = `
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                             <div>
-                                <h4 class="font-bold text-slate-900">${v.produtoNome} (x${v.qtd})</h4>
-                                <p class="text-xs text-slate-500 mt-0.5">Cliente/Tipo: <span class="font-semibold text-slate-700">${v.cliente}</span></p>
+                                <h4 class="font-bold text-slate-900">${esc(v.produtoNome)} (x${v.qtd})</h4>
+                                <p class="text-xs text-slate-500 mt-0.5">Cliente/Tipo: <span class="font-semibold text-slate-700">${esc(v.cliente)}</span></p>
                                 <p class="text-[10px] text-slate-400 mt-0.5"><i class="fa-regular fa-clock"></i> ${v.dataHora}</p>
                             </div>
                             <div class="text-right">
@@ -801,7 +843,8 @@
                         produtoNome: 'Baixa de Fiado (Quitação)',
                         qtd: 1,
                         total: cli.divida,
-                        lucro: cli.divida,
+                        lucro: 0,
+                        quitacao: true,
                         tipo: 'pago',
                         cliente: cli.nome,
                         dataHora: dataHoraFormatada,
@@ -840,15 +883,27 @@
                 let payloadPix = gerarPayloadPix(cli.divida);
                 let texto = `Olá *${cli.nome}*, tudo bem? Lembrete referente à sua pendência de *R$ ${cli.divida.toFixed(2)}* na DoceGestão.\n\n` +
                             `Segue a chave Pix Copia e Cola:\n\`${payloadPix}\`\n\nAgradeço! ✨`;
-                window.open(`https://api.whatsapp.com/send?phone=${cli.telefone || ''}&text=${encodeURIComponent(texto)}`, '_blank');
+                window.open(`https://api.whatsapp.com/send?phone=${foneWhats(cli.telefone)}&text=${encodeURIComponent(texto)}`, '_blank');
             }
         }
 
         function gerarPayloadPix(valor) {
-            let chave = window.configPix.chave || '';
-            let nome = window.configPix.nome || 'DoceGestao';
-            let cidade = window.configPix.cidade || 'Sao Paulo';
-            return `00020126580014br.gov.bcb.pix0136${chave}5204000053039865802BR5925${nome}6009${cidade}62070503***6304`;
+            const tlv = (id, v) => id + String(v.length).padStart(2, '0') + v;
+            const limpa = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9 ]/g, ' ').trim().toUpperCase();
+            let chave = String(window.configPix.chave || '').trim();
+            if (chave.startsWith('+')) chave = '+' + chave.replace(/\D/g, '');
+            else if (!chave.includes('@') && !/^[0-9a-f-]{36}$/i.test(chave)) chave = chave.replace(/\D/g, '');
+            const nome = limpa(window.configPix.nome).slice(0, 25) || 'DOCEGESTAO';
+            const cidade = limpa(window.configPix.cidade).slice(0, 15) || 'SAO PAULO';
+            let p = tlv('00', '01') + tlv('26', tlv('00', 'br.gov.bcb.pix') + tlv('01', chave)) + tlv('52', '0000') + tlv('53', '986')
+                  + (valor > 0 ? tlv('54', Number(valor).toFixed(2)) : '') + tlv('58', 'BR') + tlv('59', nome) + tlv('60', cidade)
+                  + tlv('62', tlv('05', '***')) + '6304';
+            let crc = 0xFFFF;
+            for (let i = 0; i < p.length; i++) {
+                crc ^= p.charCodeAt(i) << 8;
+                for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+            }
+            return p + crc.toString(16).toUpperCase().padStart(4, '0');
         }
 
         window.cobrarPixCliente = function(clienteId) {
@@ -864,15 +919,15 @@
                 let payload = gerarPayloadPix(cli.divida);
                 document.getElementById('pix-copia-cola').value = payload;
                 document.getElementById('qrcode').innerHTML = '';
-                new QRCode(document.getElementById('qrcode'), { text: payload, width: 180, height: 180 });
+                new QRCode(document.getElementById('qrcode'), { text: payload, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
                 document.getElementById('modal-pix').classList.remove('hidden');
             }
         }
         window.fecharModalPix = function() { document.getElementById('modal-pix').classList.add('hidden'); }
-        window.copiarCodigoPix = function() {
+        window.copiarCodigoPix = async function() {
             let copyText = document.getElementById('pix-copia-cola');
             copyText.select();
-            navigator.clipboard.writeText(copyText.value);
+            try { await navigator.clipboard.writeText(copyText.value); } catch (e) { document.execCommand('copy'); }
             alert('Código Pix copiado!');
         }
 
@@ -888,22 +943,18 @@
             let anoAtual = agora.getFullYear();
 
             window.vendas.forEach(v => {
-                faturamentoTotal += v.total;
-                lucroTotal += v.lucro;
+                if (!ehQuitacao(v)) { faturamentoTotal += v.total; lucroTotal += v.lucro; }
 
-                if (v.tipo === 'fiado' && v.clienteId) {
-                    let dataVenda = v.dataObjeto ? new Date(v.dataObjeto) : null;
-                    if (dataVenda) {
-                        let ehMesAnterior = (dataVenda.getFullYear() < anoAtual) || (dataVenda.getFullYear() === anoAtual && dataVenda.getMonth() < mesAtual);
-                        if (ehMesAnterior) {
-                            let cli = window.clientes.find(c => String(c.id) === String(v.clienteId));
-                            if (cli && cli.divida > 0) fiadoMesAnterior += Math.min(v.total, cli.divida);
-                        }
-                    }
-                }
+                });
+            // Pagamentos quitam a dívida mais antiga primeiro: o que sobra além do fiado do mês atual é de meses anteriores
+            const fiadoAtual = {};
+            window.vendas.forEach(v => {
+                if (v.tipo === 'fiado' && v.clienteId && !ehMesAnterior(v)) fiadoAtual[v.clienteId] = (fiadoAtual[v.clienteId] || 0) + v.total;
             });
-
-            window.clientes.forEach(c => fiadoTotal += c.divida);
+            window.clientes.forEach(c => {
+                fiadoTotal += c.divida;
+                fiadoMesAnterior += Math.max(0, c.divida - (fiadoAtual[c.id] || 0));
+            });
 
             document.getElementById('lbl-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
             document.getElementById('lbl-lucro').innerText = `R$ ${lucroTotal.toFixed(2)}`;
@@ -912,10 +963,17 @@
         }
 
         function atualizarSelects() {
+            const a = document.getElementById('venda-produto'), b = document.getElementById('venda-cliente');
+            const va = a.value, vb = b.value;
+            atualizarSelectsBase();
+            if (va) a.value = va;
+            if (vb) b.value = vb;
+        }
+        function atualizarSelectsBase() {
             let selProd = document.getElementById('venda-produto');
             let selCli = document.getElementById('venda-cliente');
-            if(selProd) selProd.innerHTML = window.produtos.map(p => `<option value="${p.id}">${p.nome} - R$ ${p.preco.toFixed(2)} (${p.qtd} disp)</option>`).join('');
-            if(selCli) selCli.innerHTML = window.clientes.map(c => `<option value="${c.id}">${c.nome} (Devendo: R$ ${c.divida.toFixed(2)})</option>`).join('');
+            if(selProd) selProd.innerHTML = window.produtos.map(p => `<option value="${p.id}">${esc(p.nome)} - R$ ${p.preco.toFixed(2)} (${p.qtd} disp)</option>`).join('');
+            if(selCli) selCli.innerHTML = window.clientes.map(c => `<option value="${c.id}">${esc(c.nome)} (Devendo: R$ ${c.divida.toFixed(2)})</option>`).join('');
         }
 
         let graficoFaturamentoInstancia = null;
@@ -926,13 +984,27 @@
             let faturamentoHoje = 0;
             let faturamentoGeral = 0;
 
+            let faturamentoMes = 0;
+            const dias7 = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+                dias7.push({ chave: d.toDateString(), rotulo: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), total: 0 });
+            }
+            const agoraRel = new Date();
             window.vendas.forEach(v => {
+                if (ehQuitacao(v)) return; // recebimento de fiado não é nova venda
                 faturamentoGeral += v.total;
-                if(v.dataHora && v.dataHora.startsWith(hojeStr)) faturamentoHoje += v.total;
+                const d = dataVenda(v);
+                if (!d) return;
+                if (d.toDateString() === agoraRel.toDateString()) faturamentoHoje += v.total;
+                if (d.getMonth() === agoraRel.getMonth() && d.getFullYear() === agoraRel.getFullYear()) faturamentoMes += v.total;
+                const dia = dias7.find(x => x.chave === d.toDateString());
+                if (dia) dia.total += v.total;
             });
+            const topProdutos = [...window.produtos].sort((a, b) => (b.vendidosTotal || 0) - (a.vendidosTotal || 0)).slice(0, 8);
 
             document.getElementById('rel-hoje').innerText = `R$ ${faturamentoHoje.toFixed(2)}`;
-            document.getElementById('rel-mes').innerText = `R$ ${faturamentoGeral.toFixed(2)}`;
+            document.getElementById('rel-mes').innerText = `R$ ${faturamentoMes.toFixed(2)}`;
             document.getElementById('rel-total').innerText = `R$ ${faturamentoGeral.toFixed(2)}`;
 
             let ctxFat = document.getElementById('graficoFaturamento').getContext('2d');
@@ -940,10 +1012,10 @@
             graficoFaturamentoInstancia = new Chart(ctxFat, {
                 type: 'line',
                 data: {
-                    labels: ['Início', 'Hoje', 'Total'],
+                    labels: dias7.map(d => d.rotulo),
                     datasets: [{
                         label: 'Faturamento (R$)',
-                        data: [0, faturamentoHoje, faturamentoGeral],
+                        data: dias7.map(d => d.total),
                         borderColor: '#db2777',
                         backgroundColor: 'rgba(219, 39, 119, 0.1)',
                         tension: 0.3, fill: true
@@ -957,10 +1029,10 @@
             graficoProdutosInstancia = new Chart(ctxProd, {
                 type: 'bar',
                 data: {
-                    labels: window.produtos.length > 0 ? window.produtos.map(p => p.nome) : ['Nenhum'],
+                    labels: topProdutos.length ? topProdutos.map(p => p.nome) : ['Nenhum'],
                     datasets: [{
                         label: 'Unidades Vendidas',
-                        data: window.produtos.length > 0 ? window.produtos.map(p => p.vendidosTotal || 0) : [0],
+                        data: topProdutos.length ? topProdutos.map(p => p.vendidosTotal || 0) : [0],
                         backgroundColor: '#f472b6', borderRadius: 8
                     }]
                 },
@@ -969,15 +1041,18 @@
         }
 
         window.exportarCSV = function() {
-            let csvContent = "data:text/csv;charset=utf-8,ID,Produto,Quantidade,Total,Lucro,Tipo,Cliente,DataHora\n";
-            window.vendas.forEach(v => { csvContent += `${v.id},${v.produtoNome},${v.qtd},${v.total},${v.lucro},${v.tipo},${v.cliente},${v.dataHora}\n`; });
-            let encodedUri = encodeURI(csvContent);
-            let link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "relatorio_vendas_docegestao.csv");
+            const num = n => Number(n || 0).toFixed(2).replace('.', ',');
+            const cel = t => `"${String(t ?? '').replace(/"/g, '""')}"`;
+            let linhas = ['ID;Produto;Quantidade;Total;Lucro;Tipo;Cliente;DataHora'];
+            window.vendas.forEach(v => linhas.push([v.id, cel(v.produtoNome), v.qtd, num(v.total), num(v.lucro), v.tipo, cel(v.cliente), cel(v.dataHora)].join(';')));
+            const blob = new Blob(['\uFEFF' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'relatorio_vendas_docegestao.csv';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
         }
 
         window.onload = function() {
