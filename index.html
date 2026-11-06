@@ -77,9 +77,7 @@
                 <h3 class="font-bold text-slate-800 mb-3 text-sm flex items-center gap-2">
                     <i class="fa-solid fa-clock-rotate-left text-pink-600"></i> Últimas Vendas
                 </h3>
-                <div id="lista-ultimas-vendas" class="space-y-2">
-                    <!-- Preenchido via JS -->
-                </div>
+                <div id="lista-ultimas-vendas" class="space-y-2"></div>
             </div>
         </section>
 
@@ -92,9 +90,7 @@
                 </button>
             </div>
             
-            <div id="grid-produtos" class="grid grid-cols-1 gap-3">
-                <!-- Produtos -->
-            </div>
+            <div id="grid-produtos" class="grid grid-cols-1 gap-3"></div>
         </section>
 
         <!-- ABA 3: VENDAS -->
@@ -121,14 +117,10 @@
                 <p class="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                     <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Produtos Acabando (≤ 5 un)
                 </p>
-                <div id="lbl-produtos-acabando" class="text-xs font-semibold text-rose-600 mt-1.5 space-y-1">
-                    <!-- Preenchido via JS -->
-                </div>
+                <div id="lbl-produtos-acabando" class="text-xs font-semibold text-rose-600 mt-1.5 space-y-1"></div>
             </div>
 
-            <div id="lista-historico-vendas" class="space-y-3">
-                <!-- Vendas -->
-            </div>
+            <div id="lista-historico-vendas" class="space-y-3"></div>
         </section>
 
         <!-- ABA 4: CLIENTES & FIADOS -->
@@ -140,9 +132,7 @@
                 </button>
             </div>
 
-            <div id="lista-clientes" class="space-y-3">
-                <!-- Clientes -->
-            </div>
+            <div id="lista-clientes" class="space-y-3"></div>
         </section>
 
         <!-- ABA 5: RELATÓRIOS E GRÁFICOS -->
@@ -244,8 +234,7 @@
             <h3 class="font-bold text-lg text-slate-800">Registrar Nova Venda</h3>
             <div>
                 <label class="text-xs font-semibold text-slate-600">Selecione o Doce</label>
-                <select id="venda-produto" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500 bg-white">
-                </select>
+                <select id="venda-produto" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500 bg-white"></select>
             </div>
             <div>
                 <label class="text-xs font-semibold text-slate-600">Quantidade</label>
@@ -260,8 +249,7 @@
             </div>
             <div id="grupo-cliente" class="hidden">
                 <label class="text-xs font-semibold text-slate-600">Selecione o Cliente</label>
-                <select id="venda-cliente" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500 bg-white">
-                </select>
+                <select id="venda-cliente" class="w-full mt-1 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-pink-500 bg-white"></select>
             </div>
             <div class="flex gap-2 pt-2">
                 <button onclick="fecharModalVenda()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-sm">Cancelar</button>
@@ -336,7 +324,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Configuração do Firebase via env da Vercel ou fallback
         let envConfig = null;
         try {
             if (typeof process !== "undefined" && process.env && process.env.NEXT_PUBLIC_FIREBASE_CONFIG) {
@@ -363,18 +350,15 @@
             document.getElementById('status-conexao').className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
             document.getElementById('txt-status-conexao').innerText = 'Nuvem Conectada';
         } catch (e) {
-            console.warn("Firebase não inicializado, usando LocalStorage:", e);
             document.getElementById('status-conexao').className = 'inline-block w-2 h-2 rounded-full bg-amber-400';
             document.getElementById('txt-status-conexao').innerText = 'Modo Local (Offline)';
         }
 
-        // Variáveis Globais
         window.produtos = JSON.parse(localStorage.getItem('doceria_produtos')) || [];
         window.vendas = JSON.parse(localStorage.getItem('doceria_vendas')) || [];
         window.clientes = JSON.parse(localStorage.getItem('doceria_clientes')) || [];
         window.configPix = JSON.parse(localStorage.getItem('doceria_config')) || { chave: '', nome: '', cidade: 'Sao Paulo' };
 
-        // Sincronização em tempo real (Firebase Firestore)
         if (firebaseAtivo && db) {
             onSnapshot(collection(db, "produtos"), (snapshot) => {
                 window.produtos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -383,7 +367,7 @@
             });
             onSnapshot(collection(db, "vendas"), (snapshot) => {
                 window.vendas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                window.vendas.sort((a, b) => (b.id - a.id));
+                window.vendas.sort((a, b) => Number(b.id) - Number(a.id));
                 localStorage.setItem('doceria_vendas', JSON.stringify(window.vendas));
                 renderizarApp();
             });
@@ -400,26 +384,26 @@
             });
         }
 
-        // Função global para salvar coleções no Firebase ou LocalStorage
         window.salvarItemNuvem = async function(colecao, item) {
             let itemId = String(item.id);
+            // Salva localmente primeiro para resposta instantânea
+            localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
             if (firebaseAtivo && db) {
                 try {
                     await setDoc(doc(db, colecao, itemId), item);
                 } catch(e) { console.error("Erro salvando no Firebase:", e); }
             }
-            localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
         }
 
         window.deletarItemNuvem = async function(colecao, id) {
             let itemId = String(id);
+            window[colecao] = window[colecao].filter(x => String(x.id) !== itemId);
+            localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
             if (firebaseAtivo && db) {
                 try {
                     await deleteDoc(doc(db, colecao, itemId));
                 } catch(e) { console.error("Erro deletando no Firebase:", e); }
             }
-            window[colecao] = window[colecao].filter(x => String(x.id) !== itemId);
-            localStorage.setItem(`doceria_${colecao}`, JSON.stringify(window[colecao]));
         }
 
         window.renderizarApp = function() {
@@ -477,6 +461,7 @@
             document.getElementById('prod-custo').value = '';
             document.getElementById('prod-qtd').value = '';
             document.getElementById('prod-preco').value = '';
+            document.getElementById('sugestao-lucro').innerText = 'Lucro sugerido: 50%';
 
             if(id !== null) {
                 let p = produtos.find(x => String(x.id) === String(id));
@@ -521,7 +506,6 @@
                     produtoExistente.custo = custo;
                     produtoExistente.preco = preco;
                     itemSalvar = produtoExistente;
-                    alert(`O produto "${produtoExistente.nome}" já existe. Foram adicionadas +${qtdAdicionar} unidades ao estoque!`);
                 } else {
                     itemSalvar = {
                         id: Date.now(),
@@ -628,8 +612,8 @@
         function fecharModalCliente() { document.getElementById('modal-cliente').classList.add('hidden'); }
 
         async function salvarCliente() {
-            let nome = document.getElementById('cli-nome').value;
-            let telefone = document.getElementById('cli-tel').value;
+            let nome = document.getElementById('cli-nome').value.trim();
+            let telefone = document.getElementById('cli-tel').value.trim();
             if(!nome) { alert('Informe o nome do cliente!'); return; }
 
             let novoCliente = { id: Date.now(), nome, telefone, divida: 0 };
